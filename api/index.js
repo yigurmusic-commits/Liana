@@ -10,31 +10,38 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Подключение к PostgreSQL через переменную окружения DATABASE_URL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+let pool;
+if (process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
 
-// Инициализация таблиц, если они не существуют
-pool.query(`
-    CREATE TABLE IF NOT EXISTS rsvps (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        status TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS wishes (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        text TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`).catch(err => console.error('Error creating tables:', err));
+    // Инициализация таблиц, если они не существуют
+    pool.query(`
+        CREATE TABLE IF NOT EXISTS rsvps (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS wishes (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `).catch(err => console.error('Error creating tables:', err));
+} else {
+    console.error('DATABASE_URL is not set!');
+}
+
 
 // API: Сохранить ответ гостя
 app.post('/api/rsvp', async (req, res) => {
+    if (!pool) return res.status(500).json({ success: false, error: 'Database not connected (missing DATABASE_URL)' });
     try {
         const { name, status } = req.body;
         if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
@@ -52,6 +59,7 @@ app.post('/api/rsvp', async (req, res) => {
 
 // API: Сохранить пожелание
 app.post('/api/wishes', async (req, res) => {
+    if (!pool) return res.status(500).json({ success: false, error: 'Database not connected (missing DATABASE_URL)' });
     try {
         const { name, text } = req.body;
         if (!name || !text) return res.status(400).json({ success: false, error: 'Name and text are required' });
@@ -69,6 +77,7 @@ app.post('/api/wishes', async (req, res) => {
 
 // API: Получить пожелания
 app.get('/api/wishes', async (req, res) => {
+    if (!pool) return res.status(500).json({ success: false, error: 'Database not connected (missing DATABASE_URL)' });
     try {
         const result = await pool.query(`SELECT name, text, created_at FROM wishes ORDER BY created_at ASC`);
         res.json({ success: true, wishes: result.rows });
@@ -79,6 +88,7 @@ app.get('/api/wishes', async (req, res) => {
 
 // API: Получить ответы (для админки)
 app.get('/api/rsvps', async (req, res) => {
+    if (!pool) return res.status(500).json({ success: false, error: 'Database not connected (missing DATABASE_URL)' });
     try {
         const result = await pool.query(`SELECT name, status, created_at FROM rsvps ORDER BY created_at DESC`);
         res.json({ success: true, rsvps: result.rows });
