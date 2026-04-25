@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "website-scraper": "^6.0.0"
+  }
+}

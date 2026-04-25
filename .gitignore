@@ -1,0 +1,4 @@
+node_modules/
+.vercel/
+wedding.db
+.DS_Store
